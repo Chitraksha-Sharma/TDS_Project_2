@@ -113,7 +113,7 @@ def generic_analysis(df,file_path):
     column_types = list(df.dtypes)
     return {
         'filename' : file_path,
-        'example_rows' : pd.read_csv(filename).head(3).to_dict(),
+        'example_rows' : pd.read_csv(file_path).head(3).to_dict(),
         'column_data' : list(zip(column_names, column_types)),
         'summary_stats': summary_stats,
         'missing_values': missing_values,
@@ -252,7 +252,7 @@ def get_insights_and_implications(filename, example_rows, column_data, summary_s
         print(f"Error invoking model: {e}")
         return None
     
-def generate_story_and_save(file_path,column_data,  summary_stats, insights):
+def generate_story_and_save(directory,filename,column_data,  summary_stats, insights):
     
     """
     Use the LLM to generate a story from the analysis and save it as README.md.
@@ -279,8 +279,8 @@ def generate_story_and_save(file_path,column_data,  summary_stats, insights):
     3. Key Insights and Implications: {insights}
     
     """
-    directory = os.path.dirname(file_path)
-    filename = os.path.basename(file_path)
+        # directory = os.path.dirname(file_path)
+        # filename = os.path.basename(file_path)
     prompt_template = ChatPromptTemplate.from_messages(
     [("system", system_template), ("user", "{filename}, {column_data}, {summary_stats},  {insights}")]
     )
@@ -297,21 +297,31 @@ def generate_story_and_save(file_path,column_data,  summary_stats, insights):
         return None
     
 
-@app.get("/")
-def run_analysis(csv_file: str = None):
-    if csv_file is None:
-        return {"error": "No dataset file provided"}
-    
-    # Validate the file
-    if not os.path.exists(csv_file):
-        return {"error": f"File '{csv_file}' not found."}
 
+
+def main():
+    # Step 1: Parse command-line arguments
+    if len(sys.argv) != 2:
+        print("Usage: uv run autolysis.py <dataset.csv>")
+        sys.exit(1)
+
+    # Get the dataset filename from the command-line arguments
+    csv_file = sys.argv[1]
+    file_path = csv_file
+    file_name = os.path.basename(csv_file)
+    directory = os.path.dirname(csv_file)
+
+    # Step 2: Validate the file
+    if not os.path.exists(csv_file):
+        print(f"Error: File '{csv_file}' not found.")
+        sys.exit(1)
     if not csv_file.endswith(".csv"):
-        return {"error": "Only CSV files are supported."}
-   
+        print("Error: Only CSV files are supported.")
+        sys.exit(1)
+
     # Step 3: Load the dataset
     try:
-        df = pd.read_csv(csv_file)
+        df = pd.read_csv(csv_file,encoding='latin-1')
     except Exception as e:
         print(f"Error: Unable to read the CSV file. {e}")
         sys.exit(1)
@@ -367,7 +377,7 @@ def run_analysis(csv_file: str = None):
     
     # Step 8: Generate a Story and Save as README.md
     print("\nWriting the Story (README.md)...")
-    generate_story_and_save(filename,column_data, summary_stats, insights_and_implications)
+    generate_story_and_save(directory,filename,column_data, summary_stats, insights_and_implications)
     print("\nAnalysis Completed! The results have been saved.")
     print("- Visualizations: Saved in current directory.")
     print("- Story: README.md generated.")
