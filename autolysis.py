@@ -113,7 +113,7 @@ def generic_analysis(df,file_path):
     column_types = list(df.dtypes)
     return {
         'filename' : file_path,
-        'example_rows' : pd.read_csv(file_path).head(3).to_dict(),
+        'example_rows' : df.head(3).to_dict(),
         'column_data' : list(zip(column_names, column_types)),
         'summary_stats': summary_stats,
         'missing_values': missing_values,
